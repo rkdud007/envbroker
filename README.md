@@ -1,10 +1,14 @@
 # envbroker
 
-`envbroker` is a small Rust CLI for guarding secret variables that usually live in `.env` files, such as `API_KEY`, `SECRET_KEY`, database URLs, and access tokens, while still making them available to approved commands.
+> [!NOTE]
+> Are you worried your agent might do stupid stuff with your precious `.env` variables?  
+> Do you handle high-risk secrets like wallet keys, API tokens, or service credentials in your `.env` file while *vibe-coding* ?
+
+`envbroker` is a CLI for guarding secret variables that usually live in `.env` files, such as `API_KEY`, `SECRET_KEY`, database URLs, and access tokens, while still making them available to approved commands.
 
 It is built for agentic coding workflows, especially high-autonomy or YOLO-style runs where an agent can move quickly and touch a lot of files and commands. Instead of relying on a fancy sandbox, `envbroker` uses a simple approach that works in practice: encrypt the real `.env`, store it outside the repository, replace the in-repo file with placeholders, and use Claude Code hooks to steer secret-dependent commands through `envbroker run`.
 
-> btw this cli is vibe coded also
+> btw this cli is vibe coded also lol
 
 ## Status
 

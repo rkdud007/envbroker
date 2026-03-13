@@ -1,5 +1,6 @@
 [package]
 name = "envbroker"
+description = "Secure your `.env` file from coding agent doing stupid execution"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
