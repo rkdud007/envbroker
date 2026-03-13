@@ -8,7 +8,6 @@ mod paths;
 
 use anyhow::Result;
 use clap::Parser;
-use tracing::{info, warn};
 
 use cli::{Cli, Command};
 
@@ -61,11 +60,6 @@ fn main() -> Result<()> {
             let cwd = std::env::current_dir()?;
             let project_root = paths::find_project_root(&cwd)?;
             cli::doctor::doctor(&project_root)
-        }
-        Command::ImportEnv { env_file, profile } => {
-            info!(env_file = %env_file.display(), %profile, "import-env");
-            warn!("import-env not yet implemented");
-            Ok(())
         }
         Command::ListVars { profile } => {
             let cwd = std::env::current_dir()?;

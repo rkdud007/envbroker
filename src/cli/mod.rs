@@ -50,16 +50,6 @@ pub enum Command {
     Status,
     /// Diagnose common installation or runtime issues.
     Doctor,
-    /// Import secrets from a .env file into an existing installation.
-    ImportEnv {
-        /// Path to the .env file to import.
-        #[arg(long, default_value = ".env")]
-        env_file: PathBuf,
-
-        /// Secret profile to use.
-        #[arg(long, default_value = "default")]
-        profile: String,
-    },
     /// List protected variable names for the current project.
     ListVars {
         /// Secret profile to use.
