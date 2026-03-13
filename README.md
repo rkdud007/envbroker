@@ -4,6 +4,8 @@
 
 It is built for agentic coding workflows, especially high-autonomy or YOLO-style runs where an agent can move quickly and touch a lot of files and commands. Instead of relying on a fancy sandbox, `envbroker` uses a simple approach that works in practice: encrypt the real `.env`, store it outside the repository, replace the in-repo file with placeholders, and use Claude Code hooks to steer secret-dependent commands through `envbroker run`.
 
+> btw this cli is vibe coded also
+
 ## Status
 
 The current implementation focuses on:
