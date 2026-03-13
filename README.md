@@ -1,8 +1,8 @@
 # envbroker
 
-`envbroker` is a small Rust CLI for keeping repository `.env` files non-sensitive while still making real secrets available to approved commands.
+`envbroker` is a small Rust CLI for guarding secret variables that usually live in `.env` files, such as `API_KEY`, `SECRET_KEY`, database URLs, and access tokens, while still making them available to approved commands.
 
-It encrypts a plaintext `.env`, stores the ciphertext outside the repository, replaces the in-repo file with placeholders, and installs Claude Code hooks that steer secret-dependent commands through `envbroker run`.
+It is built for agentic coding workflows, especially high-autonomy or YOLO-style runs where an agent can move quickly and touch a lot of files and commands. Instead of relying on a fancy sandbox, `envbroker` uses a simple approach that works in practice: encrypt the real `.env`, store it outside the repository, replace the in-repo file with placeholders, and use Claude Code hooks to steer secret-dependent commands through `envbroker run`.
 
 ## Status
 
@@ -21,7 +21,11 @@ GitHub renders GIFs directly in README files, so this is the simplest embed form
 
 ## Why
 
-Typical `.env` workflows are easy to leak into commits, logs, screenshots, and agent sessions. `envbroker` makes the repository copy intentionally useless:
+In many repos, the most dangerous values are plain environment variables sitting in `.env`: `API_KEY`, `SECRET_KEY`, `DATABASE_URL`, service tokens, and similar credentials. That model is already easy to leak during normal development, and it gets worse when coding agents are operating with broad autonomy.
+
+`envbroker` is meant for that practical problem. If you are running an agent in a fast, high-trust workflow, you may not want to stop and build a full sandbox or permission system first. A simple and slightly hacky guardrail is often better than no guardrail at all.
+
+The core idea is to make the repository copy of `.env` intentionally useless while still allowing approved commands to access the real values when needed:
 
 - real values are encrypted outside the repo
 - the checked-in `.env` contains `ENVBROKER_REQUIRED` placeholders
@@ -174,3 +178,7 @@ cargo fmt
 cargo test
 cargo run -- --help
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
