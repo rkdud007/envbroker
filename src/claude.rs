@@ -120,30 +120,32 @@ pub fn remove_settings(existing: &Value) -> Value {
     // Remove deny rules.
     if let Some(permissions) = settings.get_mut("permissions")
         && let Some(deny) = permissions.get_mut("deny")
-            && let Some(arr) = deny.as_array_mut() {
-                arr.retain(|v| v.as_str().map(|s| s != "Read(./.env)").unwrap_or(true));
-            }
+        && let Some(arr) = deny.as_array_mut()
+    {
+        arr.retain(|v| v.as_str().map(|s| s != "Read(./.env)").unwrap_or(true));
+    }
 
     // Remove envbroker hooks.
     if let Some(hooks) = settings.get_mut("hooks")
-        && let Some(hooks_obj) = hooks.as_object_mut() {
-            for (_key, hook_arr) in hooks_obj.iter_mut() {
-                if let Some(arr) = hook_arr.as_array_mut() {
-                    arr.retain(|h| {
-                        !h.get("hooks")
-                            .and_then(|v| v.as_array())
-                            .map(|hooks| {
-                                hooks.iter().any(|hook| {
-                                    hook.get("command")
-                                        .and_then(|c| c.as_str())
-                                        .is_some_and(|c| c.contains("envbroker"))
-                                })
+        && let Some(hooks_obj) = hooks.as_object_mut()
+    {
+        for (_key, hook_arr) in hooks_obj.iter_mut() {
+            if let Some(arr) = hook_arr.as_array_mut() {
+                arr.retain(|h| {
+                    !h.get("hooks")
+                        .and_then(|v| v.as_array())
+                        .map(|hooks| {
+                            hooks.iter().any(|hook| {
+                                hook.get("command")
+                                    .and_then(|c| c.as_str())
+                                    .is_some_and(|c| c.contains("envbroker"))
                             })
-                            .unwrap_or(false)
-                    });
-                }
+                        })
+                        .unwrap_or(false)
+                });
             }
         }
+    }
 
     Value::Object(settings)
 }

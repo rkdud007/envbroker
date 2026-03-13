@@ -147,10 +147,11 @@ fn clean_placeholder_artifacts(project_root: &Path, marker: &str) {
         // Match the marker itself (as a file) and any suffixed variants like -shm, -wal.
         if (name_str == marker || name_str.starts_with(&format!("{}-", marker)))
             && let Ok(ft) = entry.file_type()
-                && ft.is_file()
-                    && std::fs::remove_file(entry.path()).is_ok() {
-                        info!(path = %entry.path().display(), "removed placeholder artifact");
-                    }
+            && ft.is_file()
+            && std::fs::remove_file(entry.path()).is_ok()
+        {
+            info!(path = %entry.path().display(), "removed placeholder artifact");
+        }
     }
 }
 

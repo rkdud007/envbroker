@@ -46,9 +46,10 @@ pub fn parse_dotenv(content: &str) -> Result<Vec<EnvEntry>> {
 /// Remove surrounding single or double quotes from a value.
 fn unquote(s: &str) -> String {
     if s.len() >= 2
-        && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\''))) {
-            return s[1..s.len() - 1].to_string();
-        }
+        && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')))
+    {
+        return s[1..s.len() - 1].to_string();
+    }
     s.to_string()
 }
 
