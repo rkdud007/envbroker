@@ -18,10 +18,12 @@ pub fn retrieve_identity(project_id: &str, profile: &str) -> Result<String> {
     let account = format!("{}:{}", project_id, profile);
     let entry =
         keyring::Entry::new(SERVICE_NAME, &account).context("Failed to create keychain entry")?;
-    let password = entry.get_password().context(format!(
-        "Failed to retrieve identity from keychain for service '{}', account '{}'",
-        SERVICE_NAME, account
-    ))?;
+    let password = entry.get_password().with_context(|| {
+        format!(
+            "Failed to retrieve identity from keychain for service '{}', account '{}'",
+            SERVICE_NAME, account
+        )
+    })?;
     Ok(password)
 }
 

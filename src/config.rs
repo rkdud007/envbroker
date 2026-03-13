@@ -12,19 +12,28 @@ pub struct Config {
     pub env_placeholder_path: String,
     pub ciphertext_path: String,
     pub vars: Vec<String>,
-    /// "keychain" or "passphrase".
-    #[serde(default = "default_auth_method")]
-    pub auth_method: String,
+    #[serde(default)]
+    pub auth_method: AuthMethod,
     pub elevation_policy: ElevationPolicy,
 }
 
-fn default_auth_method() -> String {
-    "keychain".to_string()
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AuthMethod {
+    #[default]
+    Keychain,
+    Passphrase,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ElevationMode {
+    PlaceholderDriven,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ElevationPolicy {
-    pub mode: String,
+    pub mode: ElevationMode,
     pub placeholder_marker: String,
     pub trigger_message: String,
     pub always_ask_on_envbroker_run: bool,
@@ -38,7 +47,7 @@ impl Config {
         profile: String,
         ciphertext_path: String,
         vars: Vec<String>,
-        auth_method: String,
+        auth_method: AuthMethod,
     ) -> Self {
         Self {
             version: 1,
@@ -50,7 +59,7 @@ impl Config {
             vars,
             auth_method,
             elevation_policy: ElevationPolicy {
-                mode: "placeholder-driven".to_string(),
+                mode: ElevationMode::PlaceholderDriven,
                 placeholder_marker: "ENVBROKER_REQUIRED".to_string(),
                 trigger_message: "This command appears to have failed because the repository \
                     uses envbroker placeholders. Ask the user for permission and rerun it with \
@@ -96,9 +105,9 @@ pub struct ExternalMeta {
 
 impl ExternalMeta {
     pub fn new(profile: &str, ciphertext_checksum: &str) -> Self {
-        let now = chrono_now();
+        let now = unix_timestamp_now();
         Self {
-            created_at: now.clone(),
+            created_at: now,
             install_version: env!("CARGO_PKG_VERSION").to_string(),
             ciphertext_checksum: ciphertext_checksum.to_string(),
             profile: profile.to_string(),
@@ -127,12 +136,11 @@ impl ExternalMeta {
     }
 }
 
-/// Simple ISO 8601 timestamp without pulling in chrono.
-fn chrono_now() -> String {
+/// Return the current time as a Unix timestamp string.
+fn unix_timestamp_now() -> String {
     use std::time::SystemTime;
     let duration = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default();
-    // Return Unix timestamp as string; a proper ISO 8601 format can be added later.
-    format!("{}", duration.as_secs())
+    duration.as_secs().to_string()
 }

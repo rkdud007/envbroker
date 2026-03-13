@@ -178,33 +178,30 @@ fn is_secret_read_attempt(command: &str) -> bool {
     })
 }
 
-/// Check if a directory is inside an envbroker-managed project.
-fn is_envbroker_managed(cwd: &str) -> bool {
-    let path = std::path::Path::new(cwd);
-    let mut current = path.to_path_buf();
+/// Walk up from `cwd` looking for `.envbroker/config.json`, returning its path if found.
+fn find_config_path(cwd: &str) -> Option<std::path::PathBuf> {
+    let mut current = std::path::PathBuf::from(cwd);
     loop {
-        if current.join(".envbroker").join("config.json").exists() {
-            return true;
+        let config_path = current.join(".envbroker").join("config.json");
+        if config_path.exists() {
+            return Some(config_path);
         }
         if !current.pop() {
-            return false;
+            return None;
         }
     }
 }
 
+/// Check if a directory is inside an envbroker-managed project.
+fn is_envbroker_managed(cwd: &str) -> bool {
+    find_config_path(cwd).is_some()
+}
+
 /// Try to load envbroker config from a working directory.
 fn load_config_from_cwd(cwd: &str) -> Result<config::Config> {
-    let path = std::path::Path::new(cwd);
-    let mut current = path.to_path_buf();
-    loop {
-        let config_path = current.join(".envbroker").join("config.json");
-        if config_path.exists() {
-            return config::Config::load(&config_path);
-        }
-        if !current.pop() {
-            anyhow::bail!("No envbroker config found");
-        }
-    }
+    let config_path =
+        find_config_path(cwd).context("No envbroker config found in directory hierarchy")?;
+    config::Config::load(&config_path)
 }
 
 #[cfg(test)]

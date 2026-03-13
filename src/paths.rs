@@ -20,7 +20,7 @@ pub fn find_project_root(start: &Path) -> Result<PathBuf> {
 }
 
 /// Generate a deterministic project ID from the canonical project root path.
-/// Uses the first 16 hex chars of SHA-256.
+/// Returns a 16-character hex string derived from the path hash.
 pub fn project_id(project_root: &Path) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};

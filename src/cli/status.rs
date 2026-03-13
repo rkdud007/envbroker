@@ -25,25 +25,7 @@ pub fn status(project_root: &Path) -> Result<()> {
     let settings_path = claude::settings_path(project_root, &Scope::Local);
     let hook_installed = if settings_path.exists() {
         let settings = claude::load_settings(&settings_path)?;
-        settings
-            .get("hooks")
-            .and_then(|h| h.get("PreToolUse"))
-            .and_then(|arr| arr.as_array())
-            .map(|arr| {
-                arr.iter().any(|h| {
-                    h.get("hooks")
-                        .and_then(|v| v.as_array())
-                        .map(|hooks| {
-                            hooks.iter().any(|hook| {
-                                hook.get("command")
-                                    .and_then(|c| c.as_str())
-                                    .is_some_and(|c| c.contains("envbroker"))
-                            })
-                        })
-                        .unwrap_or(false)
-                })
-            })
-            .unwrap_or(false)
+        claude::has_envbroker_hook(&settings, "PreToolUse")
     } else {
         false
     };
@@ -61,8 +43,7 @@ pub fn status(project_root: &Path) -> Result<()> {
     // Print status.
     let project_name = project_root
         .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+        .map_or_else(|| "unknown".into(), |n| n.to_string_lossy().into_owned());
 
     println!("envbroker status");
     println!();

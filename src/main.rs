@@ -6,10 +6,17 @@ mod dotenv;
 mod keychain;
 mod paths;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
+use std::path::PathBuf;
 
 use cli::{Cli, Command};
+
+/// Resolve the project root from the current working directory.
+fn project_root() -> Result<PathBuf> {
+    let cwd = std::env::current_dir().context("Failed to determine current directory")?;
+    paths::find_project_root(&cwd)
+}
 
 fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -28,17 +35,11 @@ fn main() -> Result<()> {
                 scope,
                 env_file,
                 profile,
-            } => {
-                let cwd = std::env::current_dir()?;
-                let project_root = paths::find_project_root(&cwd)?;
-                cli::install::install_claude(&project_root, &env_file, &profile, &scope)
-            }
+            } => cli::install::install_claude(&project_root()?, &env_file, &profile, &scope),
         },
         Command::Uninstall { agent } => match agent {
             cli::UninstallAgent::Claude { scope } => {
-                let cwd = std::env::current_dir()?;
-                let project_root = paths::find_project_root(&cwd)?;
-                cli::uninstall::uninstall_claude(&project_root, &scope)
+                cli::uninstall::uninstall_claude(&project_root()?, &scope)
             }
         },
         Command::Run {
@@ -46,26 +47,12 @@ fn main() -> Result<()> {
             yes,
             command,
         } => {
-            let cwd = std::env::current_dir()?;
-            let project_root = paths::find_project_root(&cwd)?;
-            let exit_code = cli::run::run(&project_root, &profile, &command, yes)?;
+            let exit_code = cli::run::run(&project_root()?, &profile, &command, yes)?;
             std::process::exit(exit_code);
         }
-        Command::Status => {
-            let cwd = std::env::current_dir()?;
-            let project_root = paths::find_project_root(&cwd)?;
-            cli::status::status(&project_root)
-        }
-        Command::Doctor => {
-            let cwd = std::env::current_dir()?;
-            let project_root = paths::find_project_root(&cwd)?;
-            cli::doctor::doctor(&project_root)
-        }
-        Command::ListVars { profile } => {
-            let cwd = std::env::current_dir()?;
-            let project_root = paths::find_project_root(&cwd)?;
-            cli::list_vars::list_vars(&project_root, &profile)
-        }
+        Command::Status => cli::status::status(&project_root()?),
+        Command::Doctor => cli::doctor::doctor(&project_root()?),
+        Command::ListVars { profile } => cli::list_vars::list_vars(&project_root()?, &profile),
         Command::Hook { hook_type } => match hook_type {
             cli::HookType::Pretooluse => cli::hooks::handle_pretooluse(),
             cli::HookType::Posttoolusefailure => cli::hooks::handle_posttoolusefailure(),

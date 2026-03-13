@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use std::path::Path;
 
 /// A parsed key-value entry from a .env file.
@@ -45,10 +45,10 @@ pub fn parse_dotenv(content: &str) -> Result<Vec<EnvEntry>> {
 
 /// Remove surrounding single or double quotes from a value.
 fn unquote(s: &str) -> String {
-    if s.len() >= 2
-        && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')))
-    {
-        return s[1..s.len() - 1].to_string();
+    for quote in ['"', '\''] {
+        if let Some(inner) = s.strip_prefix(quote).and_then(|s| s.strip_suffix(quote)) {
+            return inner.to_string();
+        }
     }
     s.to_string()
 }
@@ -56,43 +56,39 @@ fn unquote(s: &str) -> String {
 /// Read and parse a .env file from disk.
 pub fn read_dotenv(path: &Path) -> Result<Vec<EnvEntry>> {
     let content = std::fs::read_to_string(path)
-        .map_err(|e| anyhow::anyhow!("Failed to read {}: {}", path.display(), e))?;
+        .with_context(|| format!("Failed to read {}", path.display()))?;
     parse_dotenv(&content)
 }
 
 /// Generate placeholder .env content from parsed entries.
 /// All values are replaced with the sentinel marker.
 pub fn generate_placeholder(entries: &[EnvEntry], marker: &str) -> String {
-    let mut lines = Vec::with_capacity(entries.len() + 1);
-    lines.push(
+    let header = [
         "# Managed by envbroker. Real values are encrypted outside this repository.".to_string(),
-    );
-    lines.push("# ENVBROKER_ACTIVE".to_string());
-    for entry in entries {
-        lines.push(format!("{}={}", entry.key, marker));
-    }
+        "# ENVBROKER_ACTIVE".to_string(),
+    ];
+    let lines: Vec<String> = header
+        .into_iter()
+        .chain(entries.iter().map(|e| format!("{}={}", e.key, marker)))
+        .collect();
     lines.join("\n") + "\n"
 }
 
 /// Serialize entries back to dotenv format (for encryption).
 pub fn serialize_dotenv(entries: &[EnvEntry]) -> String {
-    let mut lines = Vec::with_capacity(entries.len());
-    for entry in entries {
-        // Quote values that contain whitespace or special characters.
-        if entry.value.contains(' ')
-            || entry.value.contains('#')
-            || entry.value.contains('\'')
-            || entry.value.contains('"')
-        {
-            lines.push(format!(
-                "{}=\"{}\"",
-                entry.key,
-                entry.value.replace('"', "\\\"")
-            ));
-        } else {
-            lines.push(format!("{}={}", entry.key, entry.value));
-        }
-    }
+    let needs_quoting =
+        |v: &str| v.contains(' ') || v.contains('#') || v.contains('\'') || v.contains('"');
+
+    let lines: Vec<String> = entries
+        .iter()
+        .map(|entry| {
+            if needs_quoting(&entry.value) {
+                format!("{}=\"{}\"", entry.key, entry.value.replace('"', "\\\""))
+            } else {
+                format!("{}={}", entry.key, entry.value)
+            }
+        })
+        .collect();
     lines.join("\n") + "\n"
 }
 

@@ -107,25 +107,7 @@ pub fn doctor(project_root: &Path) -> Result<()> {
     let settings_path = claude::settings_path(project_root, &Scope::Local);
     if settings_path.exists() {
         let settings = claude::load_settings(&settings_path)?;
-        let has_hook = settings
-            .get("hooks")
-            .and_then(|h| h.get("PreToolUse"))
-            .and_then(|arr| arr.as_array())
-            .map(|arr| {
-                arr.iter().any(|h| {
-                    h.get("hooks")
-                        .and_then(|v| v.as_array())
-                        .map(|hooks| {
-                            hooks.iter().any(|hook| {
-                                hook.get("command")
-                                    .and_then(|c| c.as_str())
-                                    .is_some_and(|c| c.contains("envbroker"))
-                            })
-                        })
-                        .unwrap_or(false)
-                })
-            })
-            .unwrap_or(false);
+        let has_hook = claude::has_envbroker_hook(&settings, "PreToolUse");
 
         if has_hook {
             check_pass("Claude hook", "installed in settings");
@@ -140,15 +122,7 @@ pub fn doctor(project_root: &Path) -> Result<()> {
         }
 
         // 7. Deny rules present.
-        let has_deny = settings
-            .get("permissions")
-            .and_then(|p| p.get("deny"))
-            .and_then(|d| d.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .any(|v| v.as_str().is_some_and(|s| s == "Read(./.env)"))
-            })
-            .unwrap_or(false);
+        let has_deny = claude::has_envbroker_deny_rule(&settings);
 
         if has_deny {
             check_pass("Deny rules", ".env read denied");

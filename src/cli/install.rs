@@ -3,7 +3,11 @@ use std::path::Path;
 use tracing::{info, warn};
 
 use super::Scope;
-use crate::{claude, config, crypto, dotenv, keychain, paths};
+use crate::{
+    claude,
+    config::{self, AuthMethod},
+    crypto, dotenv, keychain, paths,
+};
 
 /// Run the full install flow for Claude Code integration.
 pub fn install_claude(
@@ -90,7 +94,7 @@ pub fn install_claude(
         profile.to_string(),
         ct_path.to_string_lossy().to_string(),
         var_names.clone(),
-        "keychain".to_string(),
+        AuthMethod::Keychain,
     );
     let config_path = paths::repo_config_path(project_root);
     config.save(&config_path)?;

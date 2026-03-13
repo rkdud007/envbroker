@@ -6,12 +6,16 @@ use crate::{config, crypto, dotenv, keychain, paths};
 
 /// Execute a command with decrypted secrets injected into its environment.
 /// The macOS Keychain prompt serves as the user approval gate.
+///
+/// When `skip_confirm` is true, skips interactive TTY confirmation
+/// (intended for CI/scripted use with `ENVBROKER_PASSPHRASE`).
 pub fn run(
     project_root: &Path,
     profile: &str,
     command: &[String],
-    _skip_confirm: bool,
+    skip_confirm: bool,
 ) -> Result<i32> {
+    let _ = skip_confirm; // TODO: implement non-interactive mode.
     if command.is_empty() {
         bail!("No command specified after --. Usage: envbroker run -- <command> [args...]");
     }
@@ -33,8 +37,7 @@ pub fn run(
     // 3. Show preflight summary.
     let project_name = project_root
         .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+        .map_or_else(|| "unknown".into(), |n| n.to_string_lossy().into_owned());
     let cmd_display = command.join(" ");
 
     eprintln!();

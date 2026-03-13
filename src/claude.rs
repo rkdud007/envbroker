@@ -87,20 +87,19 @@ fn merge_hook_entry(hooks_obj: &mut Map<String, Value>, key: &str, entry: Value)
         .or_insert_with(|| Value::Array(Vec::new()));
     let arr = hook_arr
         .as_array_mut()
-        .context(format!("hooks.{} must be an array", key))?;
+        .with_context(|| format!("hooks.{} must be an array", key))?;
 
     // Check if an envbroker hook already exists.
     let already_exists = arr.iter().any(|h| {
         h.get("hooks")
             .and_then(|v| v.as_array())
-            .map(|hooks| {
+            .is_some_and(|hooks| {
                 hooks.iter().any(|hook| {
                     hook.get("command")
                         .and_then(|c| c.as_str())
                         .is_some_and(|c| c.contains("envbroker"))
                 })
             })
-            .unwrap_or(false)
     });
 
     if !already_exists {
@@ -134,14 +133,13 @@ pub fn remove_settings(existing: &Value) -> Value {
                 arr.retain(|h| {
                     !h.get("hooks")
                         .and_then(|v| v.as_array())
-                        .map(|hooks| {
+                        .is_some_and(|hooks| {
                             hooks.iter().any(|hook| {
                                 hook.get("command")
                                     .and_then(|c| c.as_str())
                                     .is_some_and(|c| c.contains("envbroker"))
                             })
                         })
-                        .unwrap_or(false)
                 });
             }
         }
@@ -202,6 +200,39 @@ pub fn write_hook_scripts(project_root: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Check whether Claude settings contain an envbroker hook for the given event.
+pub fn has_envbroker_hook(settings: &Value, event: &str) -> bool {
+    settings
+        .get("hooks")
+        .and_then(|h| h.get(event))
+        .and_then(|arr| arr.as_array())
+        .is_some_and(|arr| {
+            arr.iter().any(|h| {
+                h.get("hooks")
+                    .and_then(|v| v.as_array())
+                    .is_some_and(|hooks| {
+                        hooks.iter().any(|hook| {
+                            hook.get("command")
+                                .and_then(|c| c.as_str())
+                                .is_some_and(|c| c.contains("envbroker"))
+                        })
+                    })
+            })
+        })
+}
+
+/// Check whether Claude settings contain the envbroker deny rule.
+pub fn has_envbroker_deny_rule(settings: &Value) -> bool {
+    settings
+        .get("permissions")
+        .and_then(|p| p.get("deny"))
+        .and_then(|d| d.as_array())
+        .is_some_and(|arr| {
+            arr.iter()
+                .any(|v| v.as_str().is_some_and(|s| s == "Read(./.env)"))
+        })
 }
 
 /// Load existing Claude settings from a file, returning empty object if not found.
