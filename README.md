@@ -23,19 +23,6 @@ The current implementation focuses on:
 
 [![envbroker demo](https://img.youtube.com/vi/wkU4WlWLF88/maxresdefault.jpg)](https://youtu.be/wkU4WlWLF88)
 
-## Why
-
-In many repos, the most dangerous values are plain environment variables sitting in `.env`: `API_KEY`, `SECRET_KEY`, `DATABASE_URL`, service tokens, and similar credentials. That model is already easy to leak during normal development, and it gets worse when coding agents are operating with broad autonomy.
-
-`envbroker` is meant for that practical problem. If you are running an agent in a fast, high-trust workflow, you may not want to stop and build a full sandbox or permission system first. A simple and slightly hacky guardrail is often better than no guardrail at all.
-
-The core idea is to make the repository copy of `.env` intentionally useless while still allowing approved commands to access the real values when needed:
-
-- real values are encrypted outside the repo
-- the checked-in `.env` contains `ENVBROKER_REQUIRED` placeholders
-- Claude Code is taught not to read `.env` directly
-- secret-aware commands are rerun through `envbroker run`
-
 ## Installation
 
 ```sh
@@ -64,65 +51,14 @@ OPENAI_API_KEY=ENVBROKER_REQUIRED
 DATABASE_URL=ENVBROKER_REQUIRED
 ```
 
-## Claude Code Workflow
-
-Example prompts:
-
-```text
-Run the test suite for this repo.
-```
-
-```text
-Start the app and verify the health check passes.
-```
-
-What typically happens:
-
-1. Claude works in the repository as usual and tries a Bash command.
-2. Claude Code calls the `PreToolUse` hook before the command executes.
-3. `envbroker hook pretooluse` inspects the incoming JSON payload, including the tool name, command, and current working directory.
-4. If the directory is not an envbroker-managed project, the hook does nothing.
-5. If Claude tries to inspect `.env` directly, the hook denies that path and keeps the agent away from placeholder files.
-6. Otherwise, the command is allowed to run normally.
-7. If that normal command fails because placeholder values are not usable for the task, Claude Code calls the `PostToolUseFailure` hook.
-8. `envbroker hook posttoolusefailure` adds recovery context telling Claude this is likely a secrets-access problem, not a normal application bug, and points it to rerun the same command through `envbroker run -- ...`.
-9. Claude then chooses an `envbroker run -- ...` command for the retry.
-10. `PreToolUse` sees that `envbroker run` invocation and returns `permissionDecision: ask`, which causes Claude Code to request approval before secrets are decrypted.
-11. After approval, `envbroker run` retrieves the stored identity from the OS keychain, decrypts the encrypted payload, overlays the environment variables onto the child process, and runs the requested command.
-
-## PreToolUse Hook Logic
-
-The installed Claude hook is intentionally small and policy-driven:
-
-- non-`Bash` tools are ignored
-- unmanaged directories are ignored
-- direct reads of `.env` such as `cat .env`, `head .env`, `tail .env`, `less .env`, `more .env`, and `bat .env` are denied
-- `envbroker run` commands trigger an approval prompt
-- everything else is allowed through
-
-The point is that the user can issue a normal request and let the integration handle secret access automatically. The user does not need to mention `.env`, placeholder files, or `envbroker` in the prompt.
-
-## PostToolUseFailure Hook Logic
-
-`PostToolUseFailure` is the recovery path:
-
-- it runs only after a Bash command has already failed
-- in an envbroker-managed project, it adds contextual guidance instead of changing the failed command directly
-- it tells Claude to stop treating the failure as an ordinary debugging problem when placeholder secrets are the likely cause
-- it suggests rerunning the exact command through `envbroker run -- ...`
-
-In practice, `PreToolUse` prevents bad secret-access behavior up front, and `PostToolUseFailure` repairs the workflow when Claude first tries a normal command that cannot succeed without injected secrets.
-
 ## How It Works
 
-1. `envbroker install claude` parses your `.env`.
-2. The payload is encrypted with an `age` identity.
-3. The secret identity is stored in the OS keychain.
-4. Ciphertext is written outside the repository.
-5. `.env` is replaced with placeholder values.
-6. Claude settings and hook scripts are updated to block direct `.env` reads and guide reruns through `envbroker run`.
-
-If Claude runs a normal command first and it fails because placeholders are not usable for that task, the `PostToolUseFailure` hook adds recovery guidance telling Claude to stop treating it as a normal app failure and rerun through `envbroker run -- ...`.
+1. `envbroker install claude` parses your `.env`, encrypts it with `age`, stores the identity in the OS keychain, and writes ciphertext outside the repository.
+2. `.env` is replaced with `ENVBROKER_REQUIRED` placeholders.
+3. Claude Code hooks are installed:
+   - **PreToolUse** blocks direct `.env` reads (`cat .env`, etc.) and prompts for approval on `envbroker run` commands.
+   - **PostToolUseFailure** detects when a command fails due to placeholder values and guides Claude to retry through `envbroker run -- ...`.
+4. You just prompt Claude normally. The hooks handle secret access automatically — no need to mention `.env` or `envbroker` in your prompt.
 
 ## Command Reference
 
