@@ -15,9 +15,7 @@ The current implementation focuses on:
 
 ## Demo
 
-```md
 ![envbroker demo](./docs/demo.gif)
-```
 
 GitHub renders GIFs directly in README files, so this is the simplest embed format.
 
