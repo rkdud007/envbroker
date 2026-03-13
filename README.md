@@ -21,9 +21,7 @@ The current implementation focuses on:
 
 ## Demo
 
-![envbroker demo](./docs/demo.gif)
-
-GitHub renders GIFs directly in README files, so this is the simplest embed format.
+[![envbroker demo](https://img.youtube.com/vi/wkU4WlWLF88/maxresdefault.jpg)](https://youtu.be/wkU4WlWLF88)
 
 ## Why
 
@@ -40,17 +38,8 @@ The core idea is to make the repository copy of `.env` intentionally useless whi
 
 ## Installation
 
-`envbroker` is not wired as a published crate yet, so install it from the repository:
-
 ```sh
-cargo install --path .
-```
-
-Or build a release binary:
-
-```sh
-cargo build --release
-./target/release/envbroker --help
+cargo install envbroker
 ```
 
 ## Quick Start
